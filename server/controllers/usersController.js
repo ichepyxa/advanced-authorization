@@ -6,6 +6,14 @@ const APIError = require('../exceptions/apiError')
 class UserController {
 	async login(req, res, next) {
 		try {
+			const { email, password } = req.body
+			const userData = await UsersService.login(email, password)
+
+			res.cookie('refreshToken', userData.refreshToken, {
+				maxAge: 30 * 24 * 60 * 60 * 1000,
+				httpOnly: true,
+			})
+			res.json(userData)
 		} catch (error) {
 			next(error)
 		}
@@ -33,6 +41,11 @@ class UserController {
 
 	async logout(req, res, next) {
 		try {
+			const { refreshToken } = req.cookies
+			const token = await UsersService.logout(refreshToken)
+
+			res.clearCookie('refreshToken')
+			return res.json(token)
 		} catch (error) {
 			next(error)
 		}
@@ -51,6 +64,14 @@ class UserController {
 
 	async refresh(req, res, next) {
 		try {
+			const { refreshToken } = req.cookies
+			const tokenData = await UsersService.refresh(refreshToken)
+
+			res.cookie('refreshToken', tokenData.refreshToken, {
+				maxAge: 30 * 24 * 60 * 60 * 1000,
+				httpOnly: true,
+			})
+			res.json(tokenData)
 		} catch (error) {
 			next(error)
 		}

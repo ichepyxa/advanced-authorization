@@ -7,8 +7,41 @@ const config = require('../config/config')
 const APIError = require('../exceptions/apiError')
 
 class UserService {
-	async login(user) {
-		return user
+	async generateResponse(id, email, activationLink) {
+		const payload = {
+			id: id,
+			email,
+			activationLink,
+		}
+
+		const tokens = tokenService.generateTokens(payload)
+		await tokenService.saveRefreshToken(id, tokens.refreshToken)
+
+		return {
+			...tokens,
+			user: payload,
+		}
+	}
+
+	async login(email, password) {
+		const user = await UserModel.findOne({ email })
+		if (!user) {
+			throw APIError.BadRequest(
+				`Пользователь с почтовым адресом ${email} не найден.`
+			)
+		}
+
+		const isPasswordEquals = await bcrypt.compare(password, user.password)
+		if (!isPasswordEquals) {
+			throw APIError.BadRequest('Неверный email или пароль')
+		}
+
+		const info = await this.generateResponse(
+			user._id,
+			email,
+			user.activationLink
+		)
+		return info
 	}
 
 	async registration(email, password) {
@@ -32,23 +65,13 @@ class UserService {
 			`${config.API_URL}/api/auth/verify/${activationLink}`
 		)
 
-		const payload = {
-			id: user._id,
-			email,
-			activationLink,
-		}
-
-		const tokens = tokenService.generateTokens(payload)
-		await tokenService.saveRefreshToken(user._id, tokens.refreshToken)
-
-		return {
-			...tokens,
-			user: payload,
-		}
+		const info = await this.generateResponse(user._id, email, activationLink)
+		return info
 	}
 
-	async logout(user) {
-		return user
+	async logout(refreshToken) {
+		const token = await tokenService.removeToken(refreshToken)
+		return token
 	}
 
 	async verify(activationLink) {
@@ -62,11 +85,20 @@ class UserService {
 		await user.save()
 	}
 
-	async refresh(req, res, next) {
-		try {
-		} catch (error) {
-			res.status(400).json(error)
+	async refresh(refreshToken) {
+		if (!refreshToken) {
+			throw APIError.UnautorizedError()
 		}
+
+		const userData = tokenService.validateRefreshToken(refreshToken)
+		const tokenFromDB = await tokenService.findToken(refreshToken)
+
+		if (!userData || !tokenFromDB) {
+			throw APIError.UnautorizedError()
+		}
+
+		const user = await UserModel.findById(userData.id)
+		this.generateResponse(user._id, user.email, user.activationLink)
 	}
 
 	async users() {

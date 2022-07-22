@@ -3,6 +3,24 @@ const config = require('../config/config')
 const TokenModel = require('../modules/TokenModel')
 
 class TokenService {
+	validateAccessToken(refreshToken) {
+		try {
+			const userData = jwt.verify(refreshToken, config.JWT_ACCESS_SECRET_KEY)
+			return userData
+		} catch (error) {
+			return null
+		}
+	}
+
+	validateRefreshToken(refreshToken) {
+		try {
+			const userData = jwt.verify(refreshToken, config.JWT_REFRESH_SECRET_KEY)
+			return userData
+		} catch (error) {
+			return null
+		}
+	}
+
 	generateTokens(payload) {
 		const accessToken = jwt.sign(payload, config.JWT_ACCESS_SECRET_KEY, {
 			expiresIn: '20m',
@@ -25,6 +43,16 @@ class TokenService {
 
 		const token = await TokenModel.create({ user: userId, refreshToken })
 		return token
+	}
+
+	async removeToken(refreshToken) {
+		const tokenData = await TokenModel.deleteOne({ refreshToken })
+		return tokenData
+	}
+
+	async findToken(refreshToken) {
+		const tokenData = await TokenModel.findOne({ refreshToken })
+		return tokenData
 	}
 }
 
