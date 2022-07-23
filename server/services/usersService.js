@@ -98,7 +98,11 @@ class UserService {
 		}
 
 		const user = await UserModel.findById(userData.id)
-		this.generateResponse(user._id, user.email, user.activationLink)
+		return await this.generateResponse(
+			user._id,
+			user.email,
+			user.activationLink
+		)
 	}
 
 	async users() {

@@ -3,9 +3,9 @@ const config = require('../config/config')
 const TokenModel = require('../modules/TokenModel')
 
 class TokenService {
-	validateAccessToken(refreshToken) {
+	validateAccessToken(accessToken) {
 		try {
-			const userData = jwt.verify(refreshToken, config.JWT_ACCESS_SECRET_KEY)
+			const userData = jwt.verify(accessToken, config.JWT_ACCESS_SECRET_KEY)
 			return userData
 		} catch (error) {
 			return null
