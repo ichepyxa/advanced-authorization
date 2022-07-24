@@ -12,7 +12,7 @@ router.post(
 	body('password').isLength({ min: 6, max: 32 }),
 	UserController.registration
 )
-router.post('/logout', UserController.logout)
+router.get('/logout', UserController.logout)
 router.get('/verify/:link', UserController.verify)
 router.get('/refresh', UserController.refresh)
 router.get('/users', authMiddleware, UserController.users)
